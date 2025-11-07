@@ -1,8 +1,23 @@
 import express from "express"
-import type { Request, Response } from "express"
+import cookieParser from "cookie-parser";
+import cors from "cors"
 
-export const app = express()
+import { authRouter } from "./routes/auth.route.ts";
+import { appOrigin } from "./config.ts";
 
-app.get("/", (req: Request, res: Response) => {
-    res.send("Hello World!");
-});
+const app = express()
+
+app.use(
+    cors({
+        origin: appOrigin,
+        credentials: true
+    })
+)
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(cookieParser())
+
+app.use('/api/v1', authRouter)
+
+export { app }
