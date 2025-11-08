@@ -2,20 +2,29 @@ import type { Request, Response } from "express"
 import {
     findUserByEmail,
     createUser,
+    updateUserPassword,
 } from "../query/user.query.ts";
 import argon2 from "argon2";
 import {
     signUpSchema,
-    signInSchema
+    signInSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema,
+    changePasswordSchema
 } from "../schemas/auth.schema.ts"
 import {
     generateAccessToken,
     generateRefreshToken,
-    verifyRefreshToken
+    verifyRefreshToken,
+    generateResetPasswordLink,
+    verifyResetPasswordToken
 } from "../lib/auth.ts"
 import {
     deleteRefreshToken,
+    deleteResetPasswordToken,
 } from "../query/token.query.ts"
+import { resetPasswordTemplate } from "../lib/templates.ts";
+import { sendEmail } from "../lib/send-mail.ts";
 
 export async function signUp(req: Request, res: Response) {
     try {
@@ -73,6 +82,8 @@ export async function signIn(req: Request, res: Response) {
         if (!isPasswordValid) {
             return res.status(404).json({ error: "Password does not match" });
         }
+
+        // email verification
 
         const payload = { userId: user.id }
         const refreshToken = await generateRefreshToken(user.id)
@@ -184,6 +195,108 @@ export async function fetchMe(req: Request, res: Response) {
     } catch (error) {
         return res.status(500).json({
             message: "fetchMe - Failed to get user data. Please try again!"
+        })
+    }
+}
+
+export async function forgotPassword(req: Request, res: Response) {
+    try {
+        const data = req.body
+        const validData = forgotPasswordSchema.safeParse(data);
+
+        if (!validData.success) {
+            return res.status(400).json({
+                error: "Invalid input"
+            })
+        }
+        const { email } = validData.data;
+
+        const user = await findUserByEmail(email);
+        if (!user) {
+            return res.status(400).json({ message: "User doesn't exist with this email" });
+        }
+
+        const resetPasswordLink = await generateResetPasswordLink(user.id);
+
+        const htmlContent = resetPasswordTemplate(resetPasswordLink!, user.name);
+
+        await sendEmail(user.email, "Reset Your Password", htmlContent)
+
+        return res.status(200).json({ success: "Email sent Successfully, Please check you email" })
+    } catch (error) {
+        return res.status(500).json({
+            message: "forgotPassword - Failed to get user data. Please try again!"
+        })
+    }
+}
+
+export async function resetPassword(req: Request, res: Response) {
+    try {
+        const { token } = req.params
+        const data = req.body
+
+        const userId = await verifyResetPasswordToken(token)
+        if (!userId) {
+            return res.status(400).json({
+                error: "BAD_REQUEST",
+                message: "Invalid or expired reset token!"
+            })
+        }
+
+        const validData = resetPasswordSchema.safeParse(data);
+        if (!validData.success) {
+            return res.status(400).json({
+                error: "Invalid input"
+            })
+        }
+
+        const { password } = validData.data;
+        const hashedPassword = await argon2.hash(password)
+
+        await updateUserPassword(userId, hashedPassword);
+        await deleteResetPasswordToken(token)
+
+        return res.status(200).json({ message: "Password has been reset successfully" });
+    } catch (error) {
+        return res.status(500).json({
+            message: "resetPassword - Failed to reset password!"
+        })
+    }
+}
+
+export async function changePassword(req: Request, res: Response) {
+    try {
+        const user = req.user;
+        const data = req.body
+        const validData = changePasswordSchema.safeParse(data);
+
+        if (!validData.success) {
+            return res.status(400).json({
+                error: "Invalid input"
+            })
+        }
+
+        const { currentPassword, newPassword } = validData.data;
+        const currentUser = await findUserByEmail(user.email);
+        if (!currentUser) {
+            return res.status(404).json({
+                error: "BAD_REQUEST",
+                message: "User does not exist!"
+            })
+        }
+
+        const isPasswordValid = await argon2.verify(currentUser.password, currentPassword);
+        if (!isPasswordValid) {
+            return res.status(400).json({ message: "Current password is incorrect" });
+        }
+
+        await updateUserPassword(currentUser.id,newPassword);
+
+        return res.status(200).json({ message: "Password has been changed successfully" });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: "changePassword - Failed to change password!"
         })
     }
 }

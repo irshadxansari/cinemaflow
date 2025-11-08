@@ -1,11 +1,15 @@
 import jwt from "jsonwebtoken";
 import {
   accessSecretKey,
+  frontendUrl
 } from "../config.ts"
 import { 
   insertRefreshToken, 
   findRefreshToken,
-  deleteRefreshToken 
+  deleteRefreshToken,
+  insertResetPasswordToken,
+  findResetPasswordToken,
+  deleteResetPasswordToken
 } from "../query/token.query.ts"
 
 interface TokenPayload {
@@ -60,6 +64,34 @@ export async function verifyRefreshToken(token: string) {
     return {userId: refreshTokens.userId}
   } catch (error) {
     console.log(`[ERROR_VERIFY_REFRESH_TOKEN]`, error);
+    return null
+  }
+}
+
+export async function generateResetPasswordLink(userId: string) {
+  try {
+    const token = crypto.randomUUID()
+    await insertResetPasswordToken(token, userId);
+    const url = `${frontendUrl}/reset-password/${token}`
+    return url
+  } catch (error) {
+    console.log(`[ERROR_GENERATE_RESET_PASSWORD_TOKEN]`, error);
+    return null
+  }
+}
+
+export async function verifyResetPasswordToken(token:string) {
+  try {
+    const resetPasswordTokens = await findResetPasswordToken(token)
+    if(!resetPasswordTokens) return null
+    const isValid = resetPasswordTokens.expiresAt > new Date()
+    if(!isValid) {
+      await deleteResetPasswordToken(token)
+      return null
+    }
+    return resetPasswordTokens.userId
+  } catch (error) {
+    console.log(`[ERROR_VERIFY_RESET_PASSWORD_TOKEN]`, error);
     return null
   }
 }

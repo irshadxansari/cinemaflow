@@ -33,3 +33,11 @@ export const resetPasswordSchema = z.object({
 export const forgotPasswordSchema = z.object({
     email: emailSchema
 })
+
+export const changePasswordSchema = z.object({
+    currentPassword: passwordSchema,
+    newPassword: passwordSchema,
+    confirmPassword: passwordSchema,
+}).refine((data) => data.newPassword === data.confirmPassword,{
+    message: "Password do not match"
+})

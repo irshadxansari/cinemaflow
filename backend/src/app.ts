@@ -3,13 +3,13 @@ import cookieParser from "cookie-parser";
 import cors from "cors"
 
 import { authRouter } from "./routes/auth.route.ts";
-import { appOrigin } from "./config.ts";
+import { frontendUrl } from "./config.ts";
 
 const app = express()
 
 app.use(
     cors({
-        origin: appOrigin,
+        origin: frontendUrl,
         credentials: true
     })
 )
