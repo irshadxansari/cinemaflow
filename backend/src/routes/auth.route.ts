@@ -6,7 +6,8 @@ import {
     refreshToken,
     fetchMe,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    emailVerfication
 } from "../controllers/auth.controller.ts"
 import {authMiddleware} from "../middlewares/auth.middleware.ts"
 
@@ -15,8 +16,9 @@ const router = Router();
 router.route("/auth/sign-up").post(signUp);
 router.route("/auth/sign-in").post(signIn);
 router.route("/auth/refresh-token").post(refreshToken);
-router.route("/auth/forgot-password").post(forgotPassword)
-router.route("/auth/reset-password/:token").post(resetPassword)
+router.route("/auth/forgot-password").post(forgotPassword);
+router.route("/auth/reset-password/:token").post(resetPassword);
+router.route("/auth/email-verify/:token").post(emailVerfication);
 
 // Secure Routes
 router.route("/auth/sign-out").post(authMiddleware, SignOut);

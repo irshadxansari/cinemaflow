@@ -1,9 +1,54 @@
 {
-  "id": "afc87345-a403-4c7c-bac9-e333120f59d1",
+  "id": "1fc91d70-632d-4df3-a5b5-14e0dc4bccb2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.tokens": {
+      "name": "tokens",
+      "schema": "",
+      "columns": {
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tokens_user_id_users_id_fk": {
+          "name": "tokens_user_id_users_id_fk",
+          "tableFrom": "tokens",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.refresh_tokens": {
       "name": "refresh_tokens",
       "schema": "",
@@ -46,51 +91,6 @@
         "refresh_tokens_user_id_users_id_fk": {
           "name": "refresh_tokens_user_id_users_id_fk",
           "tableFrom": "refresh_tokens",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.reset_password_tokens": {
-      "name": "reset_password_tokens",
-      "schema": "",
-      "columns": {
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "reset_password_tokens_user_id_users_id_fk": {
-          "name": "reset_password_tokens_user_id_users_id_fk",
-          "tableFrom": "reset_password_tokens",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"

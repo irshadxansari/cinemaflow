@@ -26,7 +26,6 @@ export async function createUser(name: string, email: string, hashedPassword: st
   }
 }
 
-
 export async function findUserById(id: string) {
   try {
     return db.query.users.findFirst({
@@ -56,6 +55,20 @@ export async function updateUserPassword(userId: string, password: string) {
       .where(eq(users.id, userId));
   } catch (error) {
     console.log(`[ERROR_UPDATE_USER_PASSWORD]`, error);
+    return null
+  }
+}
+
+export async function updateUserVerfication(userId:string) {
+  try {
+    return db.update(users)
+      .set({
+        isVerified: true,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+  } catch (error) {
+    console.log(`[ERROR_UPDATE_USER_VERIFICATION]`, error);
     return null
   }
 }

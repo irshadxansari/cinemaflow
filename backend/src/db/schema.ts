@@ -22,7 +22,7 @@ export const refreshTokens = pgTable("refresh_tokens", {
   expiresAt: timestamp("expires_at").notNull(),
 });
 
-export const resetPasswordTokens = pgTable("reset_password_tokens", {
+export const tokens = pgTable("tokens", {
   token: text("token").primaryKey(),
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   expiresAt: timestamp("expires_at").notNull(),

@@ -3,6 +3,7 @@ import {
     findUserByEmail,
     createUser,
     updateUserPassword,
+    updateUserVerfication
 } from "../query/user.query.ts";
 import argon2 from "argon2";
 import {
@@ -10,20 +11,23 @@ import {
     signInSchema,
     forgotPasswordSchema,
     resetPasswordSchema,
-    changePasswordSchema
+    changePasswordSchema,
+    emailVerficationSchema
 } from "../schemas/auth.schema.ts"
 import {
     generateAccessToken,
     generateRefreshToken,
     verifyRefreshToken,
     generateResetPasswordLink,
-    verifyResetPasswordToken
+    verifyResetPasswordToken,
+    generatEmailVerificationLink
 } from "../lib/auth.ts"
 import {
     deleteRefreshToken,
-    deleteResetPasswordToken,
+    deleteToken,
+    findEmailVerificationToken,
 } from "../query/token.query.ts"
-import { resetPasswordTemplate } from "../lib/templates.ts";
+import { resetPasswordTemplate, verifyEmailTemplate } from "../lib/templates.ts";
 import { sendEmail } from "../lib/send-mail.ts";
 
 export async function signUp(req: Request, res: Response) {
@@ -77,13 +81,24 @@ export async function signIn(req: Request, res: Response) {
             return res.status(404).json({ error: "User does not exist" });
         }
 
+        if (!user.isVerified) {
+            const url = await generatEmailVerificationLink(user.id);
+            const template = verifyEmailTemplate(url!)
+
+            await sendEmail(user.email, template.subject, template.html)
+
+            return res.status(403).json({
+                error: "FORBIDDEN",
+                message: "Verification email send. Please check you inbox"
+            })
+        }
+
         const isPasswordValid = await argon2.verify(user.password, password);
 
         if (!isPasswordValid) {
             return res.status(404).json({ error: "Password does not match" });
         }
 
-        // email verification
 
         const payload = { userId: user.id }
         const refreshToken = await generateRefreshToken(user.id)
@@ -218,9 +233,9 @@ export async function forgotPassword(req: Request, res: Response) {
 
         const resetPasswordLink = await generateResetPasswordLink(user.id);
 
-        const htmlContent = resetPasswordTemplate(resetPasswordLink!, user.name);
+        const template = resetPasswordTemplate(resetPasswordLink!);
 
-        await sendEmail(user.email, "Reset Your Password", htmlContent)
+        await sendEmail(user.email, template.subject, template.html)
 
         return res.status(200).json({ success: "Email sent Successfully, Please check you email" })
     } catch (error) {
@@ -254,7 +269,7 @@ export async function resetPassword(req: Request, res: Response) {
         const hashedPassword = await argon2.hash(password)
 
         await updateUserPassword(userId, hashedPassword);
-        await deleteResetPasswordToken(token)
+        await deleteToken(token)
 
         return res.status(200).json({ message: "Password has been reset successfully" });
     } catch (error) {
@@ -290,13 +305,45 @@ export async function changePassword(req: Request, res: Response) {
             return res.status(400).json({ message: "Current password is incorrect" });
         }
 
-        await updateUserPassword(currentUser.id,newPassword);
+        await updateUserPassword(currentUser.id, newPassword);
 
         return res.status(200).json({ message: "Password has been changed successfully" });
 
     } catch (error) {
         return res.status(500).json({
             message: "changePassword - Failed to change password!"
+        })
+    }
+}
+
+export async function emailVerfication(req: Request, res: Response) {
+    try {
+        const { token } = req.params
+        const validateData = emailVerficationSchema.safeParse(token)
+        if (!validateData.success) {
+            return res.status(400).json({
+                error: "BAD_REQUEST",
+                message: "Invalid input!"
+            })
+        }
+
+        const user = await findEmailVerificationToken(token)
+        if (!user) {
+            return res.status(400).json({
+                error: "BAD_REQUEST",
+                message: "Invalid token"
+            })
+        }
+
+        await updateUserVerfication(user.userId);
+        await deleteToken(token)
+
+        return res
+            .status(200).json({message: "Verification successful."})
+    } catch (error) {
+        return res.status(500).json({
+            error: "INTERNAL_SERVER_ERROR",
+            message: "Failed to verify user. Please try again!"
         })
     }
 }

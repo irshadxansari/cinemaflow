@@ -9,7 +9,8 @@ import {
   deleteRefreshToken,
   insertResetPasswordToken,
   findResetPasswordToken,
-  deleteResetPasswordToken
+  deleteResetPasswordToken,
+  insertEmailVerificationToken
 } from "../query/token.query.ts"
 
 interface TokenPayload {
@@ -92,6 +93,18 @@ export async function verifyResetPasswordToken(token:string) {
     return resetPasswordTokens.userId
   } catch (error) {
     console.log(`[ERROR_VERIFY_RESET_PASSWORD_TOKEN]`, error);
+    return null
+  }
+}
+
+export async function generatEmailVerificationLink(userId: string) {
+  try {
+    const token = crypto.randomUUID();
+    await insertEmailVerificationToken(token, userId);
+    const url = `${frontendUrl}/reset-password/${token}`
+    return url
+  } catch (error) {
+    console.log(`[ERROR_GENERATE_EMAIL_VERIFICATION_LINK]`, error);
     return null
   }
 }

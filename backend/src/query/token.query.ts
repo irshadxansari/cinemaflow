@@ -1,5 +1,5 @@
 import { db } from "../db/index.ts"
-import { refreshTokens, resetPasswordTokens } from "../db/schema.ts"
+import { refreshTokens, tokens } from "../db/schema.ts"
 import { eq } from "drizzle-orm"
 
 export async function deleteRefreshToken(token: string) {
@@ -43,7 +43,7 @@ export async function findRefreshToken(token: string) {
 export async function insertResetPasswordToken(token: string, userId: string) {
     try {
         return db
-            .insert(resetPasswordTokens)
+            .insert(tokens)
             .values({
                 userId: userId,
                 token: token,
@@ -58,8 +58,8 @@ export async function insertResetPasswordToken(token: string, userId: string) {
 export async function findResetPasswordToken(token: string) {
     try {
         return db
-            .query.resetPasswordTokens.findFirst({
-                where: eq(resetPasswordTokens.token, token)
+            .query.tokens.findFirst({
+                where: eq(tokens.token, token)
             })
     } catch (error) {
         console.log(`[ERROR_FIND_RESET_PASSWORD_TOKEN]`, error);
@@ -67,13 +67,40 @@ export async function findResetPasswordToken(token: string) {
     }
 }
 
-export async function deleteResetPasswordToken(token: string) {
+export async function deleteToken(token: string) {
     try {
         return db
-            .delete(resetPasswordTokens)
-            .where(eq(resetPasswordTokens.token, token));
+            .delete(tokens)
+            .where(eq(tokens.token, token));
     } catch (error) {
-        console.log(`[ERROR_DELETE_RESET_PASSWORD_TOKEN]`, error);
+        console.log(`[ERROR_DELETE_TOKEN]`, error);
+        return null
+    }
+}
+
+export async function insertEmailVerificationToken(token: string, userId: string) {
+    try {
+        return db
+            .insert(tokens)
+            .values({
+                userId: userId,
+                token: token,
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+            })
+    } catch (error) {
+        console.log(`[ERROR_INSERT_RESET_PASSWORD_TOKEN]`, error);
+        return null
+    }
+}
+
+export async function findEmailVerificationToken(token: string) {
+    try {
+        return db
+            .query.tokens.findFirst({
+                where: eq(tokens.token, token)
+            })
+    } catch (error) {
+        console.log(`[ERROR_FIND_EMAIL_VERIFICATION_TOKEN]`, error);
         return null
     }
 }

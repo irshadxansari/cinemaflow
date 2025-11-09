@@ -2,6 +2,7 @@ import { z } from "zod"
 
 const nameSchema = z.string().min(2, { message: "Please enter your full name" }).trim();
 const emailSchema = z.email({message: "Email is required"}).trim();
+const tokenSchema = z.string().min(10, { message: "Invalid token" }).trim();
 const passwordSchema = z
   .string()
   .min(8, "Password must be at least 8 characters long")
@@ -40,4 +41,8 @@ export const changePasswordSchema = z.object({
     confirmPassword: passwordSchema,
 }).refine((data) => data.newPassword === data.confirmPassword,{
     message: "Password do not match"
+})
+
+export const emailVerficationSchema = z.object({
+    token: tokenSchema
 })
